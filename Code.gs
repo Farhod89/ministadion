@@ -93,6 +93,16 @@ function doGet(e) {
   var action = params.action || '';
   var cb = params.callback || '';
 
+  // ── Telegram Webhook (GET usuli orqali) ──────────────────────
+  // Telegram ba'zan GET ham yuborishi mumkin; tgupdate parametri bilan keladi
+  if (params.tgupdate) {
+    try {
+      var update = JSON.parse(decodeURIComponent(params.tgupdate));
+      handleTelegramUpdate(update);
+    } catch(ex) {}
+    return ContentService.createTextOutput('OK').setMimeType(ContentService.MimeType.TEXT);
+  }
+
   var result;
   try {
     switch(action) {
@@ -139,9 +149,10 @@ function doPost(e) {
   }
 
   // ── Telegram Webhook ──────────────────────────────────────────
-  // Telegram update obyektida "update_id" bo'ladi
   if (params.update_id !== undefined) {
-    return handleTelegramUpdate(params);
+    handleTelegramUpdate(params);
+    // Telegram 200 OK kutadi — oddiy matn qaytarish kifoya
+    return ContentService.createTextOutput('OK').setMimeType(ContentService.MimeType.TEXT);
   }
 
   var action = params.action || '';
