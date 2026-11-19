@@ -362,15 +362,21 @@ function apiFetch(action, params) {
   var url = API_URL + '?' + Object.entries(qs).map(function(kv) {
     return encodeURIComponent(kv[0]) + '=' + encodeURIComponent(kv[1]);
   }).join('&');
-  return fetch(url).then(function(r) { return r.json(); })
+  return fetch(url, { redirect: 'follow' })
+    .then(function(r) { return r.json(); })
     .catch(function() { return { ok: false, error: 'Tarmoq xatosi' }; });
 }
 
 function apiPost(data) {
-  return fetch(API_URL, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  }).then(function(r) { return r.json(); })
+  // Apps Script CORS muammosi tufayli GET orqali yuboramiz
+  var qs = Object.entries(data).map(function(kv) {
+    return encodeURIComponent(kv[0]) + '=' + encodeURIComponent(
+      typeof kv[1] === 'object' ? JSON.stringify(kv[1]) : kv[1]
+    );
+  }).join('&');
+  var url = API_URL + '?' + qs;
+  return fetch(url, { redirect: 'follow' })
+    .then(function(r) { return r.json(); })
     .catch(function() { return { ok: false, error: 'Tarmoq xatosi' }; });
 }
 

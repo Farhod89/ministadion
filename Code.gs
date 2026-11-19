@@ -104,6 +104,18 @@ function doGet(e) {
       case 'get_chat':         result = getChat(params); break;
       case 'stadium_detail':   result = stadiumDetail(params); break;
       case 'now_playing':      result = nowPlaying(params); break;
+      // POST actionlarni ham GET orqali qabul qilamiz (CORS bypass)
+      case 'register_stadium': result = registerStadium(params); break;
+      case 'register_user':    result = registerUser(params); break;
+      case 'book_slot':        result = bookSlot(params); break;
+      case 'confirm_booking':  result = confirmBooking(params); break;
+      case 'reject_booking':   result = rejectBooking(params); break;
+      case 'cancel_booking':   result = cancelBooking(params); break;
+      case 'set_score':        result = setScore(params); break;
+      case 'send_chat':        result = sendChat(params); break;
+      case 'owner_login':      result = ownerLogin(params); break;
+      case 'owner_bookings':   result = ownerBookings(params); break;
+      case 'confirm_stadium':  result = confirmStadiumAdmin(params); break;
       default: result = err('Noma\'lum action: ' + action);
     }
   } catch(ex) {
