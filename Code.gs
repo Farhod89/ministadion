@@ -166,69 +166,424 @@ function doPost(e) {
 }
 
 // ============================================================
+// TELEGRAM BOT SESSION (PropertiesService orqali saqlash)
+// ============================================================
+
+function getTgSession(chatId) {
+  var raw = PropertiesService.getUserProperties().getProperty('tg_' + chatId);
+  try { return raw ? JSON.parse(raw) : {}; } catch(e) { return {}; }
+}
+
+function setTgSession(chatId, data) {
+  PropertiesService.getUserProperties().setProperty('tg_' + chatId, JSON.stringify(data));
+}
+
+function clearTgSession(chatId) {
+  PropertiesService.getUserProperties().deleteProperty('tg_' + chatId);
+}
+
+// ============================================================
 // TELEGRAM BOT WEBHOOK HANDLER
 // ============================================================
 
 function handleTelegramUpdate(update) {
   try {
-    var msg = update.message || update.callback_query && update.callback_query.message;
-    if (!msg) return ok({ handled: false });
-
-    var chatId = msg.chat.id;
-    var text   = (msg.text || '').trim();
-    var firstName = (msg.chat.first_name || msg.chat.username || 'Foydalanuvchi');
-
-    // /start buyrug'i
-    if (text === '/start' || text.indexOf('/start') === 0) {
-      var welcome =
-        '⚽ <b>MiniStadion.uz botiga xush kelibsiz!</b>\n\n' +
-        'Salom, ' + firstName + '!\n\n' +
-        'Bu bot orqali siz:\n' +
-        '• 🏟 Stadion egasi bo\'lsangiz — buyurtmalar haqida bildirishnoma olasiz\n' +
-        '• 📋 Buyurtmalaringiz holati haqida xabar olasiz\n\n' +
-        '🌐 Saytimiz: https://farhod89.github.io/ministadion/\n\n' +
-        '<b>Telegram ID ingiz:</b> <code>' + chatId + '</code>\n' +
-        'Stadion ro\'yxatdan o\'tkazishda shu ID ni kiriting!';
-      sendTelegram(chatId, welcome);
-      return ok({ handled: true });
+    // Callback query (inline tugmalar)
+    if (update.callback_query) {
+      return handleCallbackQuery(update.callback_query);
     }
 
-    // /id buyrug'i — foydalanuvchi o'z chat_id sini bilishi uchun
-    if (text === '/id') {
+    var msg = update.message;
+    if (!msg) return ok({ handled: false });
+
+    var chatId    = msg.chat.id;
+    var text      = (msg.text || '').trim();
+    var firstName = msg.chat.first_name || msg.chat.username || 'Foydalanuvchi';
+    var session   = getTgSession(chatId);
+
+    // ── BUYRUQLAR ─────────────────────────────────────────────
+    if (text === '/start' || text.indexOf('/start ') === 0) {
+      clearTgSession(chatId);
       sendTelegram(chatId,
-        '🆔 Sizning Telegram ID: <code>' + chatId + '</code>\n\n' +
-        'Stadion ro\'yxatdan o\'tkazishda shu ID ni "Telegram ID" maydoniga kiriting.'
+        '⚽ <b>MiniStadion.uz botiga xush kelibsiz!</b>\n\n' +
+        'Salom, ' + firstName + '!\n\n' +
+        '🏟 Stadion band qilish: /book\n' +
+        '📋 Buyurtmalarim: /mybookings\n' +
+        '🆔 Telegram ID: /id\n' +
+        '❓ Yordam: /help\n\n' +
+        '🌐 Sayt: https://farhod89.github.io/ministadion/'
       );
       return ok({ handled: true });
     }
 
-    // /help buyrug'i
-    if (text === '/help' || text === '/yordam') {
-      var helpText =
-        '📌 <b>Buyruqlar ro\'yxati:</b>\n\n' +
-        '/start — Botni ishga tushirish\n' +
-        '/id — Telegram ID ni ko\'rish\n' +
-        '/help — Yordam\n\n' +
-        '🏟 Stadion ro\'yxatdan o\'tkazish uchun:\n' +
-        'https://farhod89.github.io/ministadion/\n\n' +
-        '❓ Muammo bo\'lsa, sayt orqali bog\'laning.';
-      sendTelegram(chatId, helpText);
+    if (text === '/id') {
+      sendTelegram(chatId,
+        '🆔 Sizning Telegram ID: <code>' + chatId + '</code>\n\n' +
+        'Stadion ro\'yxatdan o\'tkazishda shu ID ni kiriting.'
+      );
       return ok({ handled: true });
     }
 
-    // Boshqa xabar — umumiy javob
+    if (text === '/help' || text === '/yordam') {
+      sendTelegram(chatId,
+        '📌 <b>Buyruqlar:</b>\n\n' +
+        '/book — Stadion band qilish\n' +
+        '/mybookings — Buyurtmalarim\n' +
+        '/cancel — Jarayonni bekor qilish\n' +
+        '/id — Telegram ID\n' +
+        '/help — Yordam\n\n' +
+        '🌐 https://farhod89.github.io/ministadion/'
+      );
+      return ok({ handled: true });
+    }
+
+    if (text === '/cancel') {
+      clearTgSession(chatId);
+      sendTelegram(chatId, '❌ Bekor qilindi. Boshidan boshlash uchun /book');
+      return ok({ handled: true });
+    }
+
+    // ── STADION BAND QILISH JARAYONI ──────────────────────────
+    if (text === '/book') {
+      clearTgSession(chatId);
+      return startBookingFlow(chatId);
+    }
+
+    if (text === '/mybookings') {
+      return showMyBookings(chatId, session);
+    }
+
+    // ── SESSION HOLATI ────────────────────────────────────────
+    if (session.step) {
+      return continueBookingFlow(chatId, text, session);
+    }
+
+    // Boshqa xabar
     sendTelegram(chatId,
       'Salom ' + firstName + '! 👋\n\n' +
-      'Men faqat stadion bildirishnomalari uchun ishlaymen.\n\n' +
-      '/help — buyruqlar ro\'yxati\n' +
-      '/id — Telegram ID ni ko\'rish\n\n' +
-      '🌐 https://farhod89.github.io/ministadion/'
+      'Stadion band qilish: /book\n' +
+      'Yordam: /help'
     );
     return ok({ handled: true });
 
   } catch(ex) {
     return ok({ handled: false, error: ex.message });
   }
+}
+
+// ── BOOKING FLOW BOSHLASH ────────────────────────────────────
+function startBookingFlow(chatId) {
+  // Tasdiqlangan stadionlarni olish
+  var sh = getSheets().stadiums;
+  var rows = sheetToObjects(sh);
+  var confirmed = rows.filter(function(r) { return r.confirmed == 'true' || r.confirmed === true; });
+
+  if (confirmed.length === 0) {
+    sendTelegram(chatId, '😔 Hozircha faol stadionlar yo\'q.\n\n🌐 https://farhod89.github.io/ministadion/');
+    return ok({ handled: true });
+  }
+
+  // Inline keyboard bilan stadionlar ro'yxati
+  var keyboard = confirmed.slice(0, 10).map(function(s) {
+    return [{ text: '🏟 ' + s.name + ' (' + (s.region || '') + ')', callback_data: 'stadium_' + s.id }];
+  });
+
+  sendTelegramKeyboard(chatId,
+    '🏟 <b>Qaysi stadionni band qilmoqchisiz?</b>\n\nQuyidagi stadionlardan birini tanlang:',
+    keyboard
+  );
+  setTgSession(chatId, { step: 'choose_stadium' });
+  return ok({ handled: true });
+}
+
+// ── BOOKING FLOW DAVOMI ──────────────────────────────────────
+function continueBookingFlow(chatId, text, session) {
+  switch(session.step) {
+
+    case 'enter_phone':
+      var phone = text.replace(/\D/g, '');
+      if (phone.length < 9) {
+        sendTelegram(chatId, '❌ Noto\'g\'ri raqam. Qayta kiriting:\nMasalan: +998901234567');
+        return ok({ handled: true });
+      }
+      session.phone = text;
+      session.step = 'enter_name';
+      setTgSession(chatId, session);
+      sendTelegram(chatId, '👤 Ismingizni kiriting (buyurtma uchun):');
+      return ok({ handled: true });
+
+    case 'enter_name':
+      if (text.length < 2) {
+        sendTelegram(chatId, '❌ Ism juda qisqa. Qayta kiriting:');
+        return ok({ handled: true });
+      }
+      session.name = text;
+      session.step = 'enter_date';
+      setTgSession(chatId, session);
+
+      // Keyingi 7 kun uchun tugmalar
+      var today = new Date();
+      var dateKeys = [];
+      var dayNames = ['Yak','Du','Se','Cho','Pay','Ju','Sha'];
+      for (var i = 0; i < 7; i++) {
+        var d = new Date(today);
+        d.setDate(today.getDate() + i);
+        var label = (i === 0 ? 'Bugun' : i === 1 ? 'Ertaga' : dayNames[d.getDay()]) +
+                    ' ' + d.getDate() + '/' + (d.getMonth()+1);
+        var val = d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate());
+        dateKeys.push([{ text: label, callback_data: 'date_' + val }]);
+      }
+      sendTelegramKeyboard(chatId, '📅 <b>Qaysi kunga band qilmoqchisiz?</b>', dateKeys);
+      return ok({ handled: true });
+
+    case 'enter_team1':
+      session.team1 = text || 'Jamoam';
+      session.step = 'enter_team2';
+      setTgSession(chatId, session);
+      sendTelegram(chatId, '⚽ 2-jamoa nomi (raqib):\n(yo\'q bo\'lsa "0" kiriting)');
+      return ok({ handled: true });
+
+    case 'enter_team2':
+      session.team2 = (text === '0' ? '' : text);
+      session.step = 'confirm';
+      setTgSession(chatId, session);
+
+      // Tasdiqlash
+      var summary =
+        '📋 <b>Buyurtma ma\'lumotlari:</b>\n\n' +
+        '🏟 Stadion: ' + session.stadium_name + '\n' +
+        '📅 Sana: ' + session.date + '\n' +
+        '⏰ Vaqt: ' + session.start_time + ' — ' + session.end_time + '\n' +
+        '👤 Ism: ' + session.name + '\n' +
+        '📞 Tel: ' + session.phone + '\n' +
+        (session.team1 ? '⚽ Jamoa 1: ' + session.team1 + '\n' : '') +
+        (session.team2 ? '⚽ Jamoa 2: ' + session.team2 + '\n' : '') +
+        '\nTasdiqlaysizmi?';
+
+      sendTelegramKeyboard(chatId, summary, [
+        [{ text: '✅ Ha, tasdiqlash', callback_data: 'confirm_book' }],
+        [{ text: '❌ Bekor qilish', callback_data: 'cancel_book' }]
+      ]);
+      return ok({ handled: true });
+
+    default:
+      clearTgSession(chatId);
+      sendTelegram(chatId, 'Jarayon tugadi. Qayta boshlash: /book');
+      return ok({ handled: true });
+  }
+}
+
+// ── CALLBACK QUERY HANDLER ───────────────────────────────────
+function handleCallbackQuery(cq) {
+  var chatId  = cq.message.chat.id;
+  var data    = cq.data;
+  var session = getTgSession(chatId);
+
+  // Callback queryga "javob" (loading ko'rsatkichini o'chirish)
+  answerCallbackQuery(cq.id);
+
+  // Stadion tanlandi
+  if (data.indexOf('stadium_') === 0) {
+    var stadiumId = data.replace('stadium_', '');
+    var sh = getSheets().stadiums;
+    var rows = sheetToObjects(sh);
+    var st = rows.find(function(r) { return r.id === stadiumId; });
+    if (!st) {
+      sendTelegram(chatId, '❌ Stadion topilmadi. Qayta: /book');
+      return ok({ handled: true });
+    }
+    session.stadium_id   = stadiumId;
+    session.stadium_name = st.name;
+    session.price        = st.price_per_hour || 0;
+    session.step         = 'enter_phone';
+    setTgSession(chatId, session);
+
+    sendTelegram(chatId,
+      '✅ <b>' + st.name + '</b> tanlandi!\n\n' +
+      '📍 ' + (st.address || st.region || '') + '\n' +
+      '⏰ Ish vaqti: ' + (st.working_hours || '08:00-21:00') + '\n' +
+      '💰 Narx: ' + (st.price_per_hour ? st.price_per_hour + ' so\'m/soat' : 'Kelishiladi') + '\n\n' +
+      '📞 Telefon raqamingizni kiriting:\n(Masalan: +998901234567)'
+    );
+    return ok({ handled: true });
+  }
+
+  // Sana tanlandi
+  if (data.indexOf('date_') === 0) {
+    var date = data.replace('date_', '');
+    session.date = date;
+    setTgSession(chatId, session);
+
+    // Bo'sh slotlarni ko'rsatish
+    var slots = getFreeSlots(session.stadium_id, date);
+    if (slots.length === 0) {
+      sendTelegram(chatId, '😔 ' + date + ' kuni bo\'sh vaqt yo\'q.\n\nBoshqa kun tanlang: /book');
+      clearTgSession(chatId);
+      return ok({ handled: true });
+    }
+
+    var slotKeys = slots.map(function(s) {
+      return [{ text: '⏰ ' + s.start + ' — ' + s.end, callback_data: 'slot_' + s.start + '_' + s.end }];
+    });
+    session.step = 'choose_slot';
+    setTgSession(chatId, session);
+    sendTelegramKeyboard(chatId, '⏰ <b>Qaysi vaqtni tanlaysiz?</b>', slotKeys);
+    return ok({ handled: true });
+  }
+
+  // Vaqt tanlandi
+  if (data.indexOf('slot_') === 0) {
+    var parts = data.replace('slot_', '').split('_');
+    session.start_time = parts[0];
+    session.end_time   = parts[1];
+    session.step       = 'enter_team1';
+    setTgSession(chatId, session);
+    sendTelegram(chatId, '⚽ 1-jamoa nomi (sizning jamoangiz):\n(bo\'sh qoldirish uchun "-" yozing)');
+    return ok({ handled: true });
+  }
+
+  // Tasdiqlash
+  if (data === 'confirm_book') {
+    if (!session.stadium_id || !session.date || !session.start_time) {
+      sendTelegram(chatId, '❌ Ma\'lumotlar to\'liq emas. Qayta: /book');
+      clearTgSession(chatId);
+      return ok({ handled: true });
+    }
+    var bookParams = {
+      stadium_id:   session.stadium_id,
+      user_phone:   session.phone,
+      user_name:    session.name,
+      booking_date: session.date,
+      start_time:   session.start_time,
+      end_time:     session.end_time,
+      team1:        session.team1 || '',
+      team2:        session.team2 || '',
+      booking_type: 'friendly'
+    };
+    var result;
+    try {
+      result = JSON.parse(bookSlot(bookParams).getContent());
+    } catch(ex) {
+      result = { ok: false, error: ex.message };
+    }
+
+    clearTgSession(chatId);
+
+    if (result.ok) {
+      sendTelegram(chatId,
+        '🎉 <b>Buyurtma muvaffaqiyatli yuborildi!</b>\n\n' +
+        '🏟 ' + session.stadium_name + '\n' +
+        '📅 ' + session.date + '  ⏰ ' + session.start_time + ' — ' + session.end_time + '\n' +
+        '🆔 Buyurtma ID: <code>' + (result.id || '') + '</code>\n\n' +
+        '⏳ Stadion egasi tasdiqlashini kuting.\n' +
+        '🌐 Holat: https://farhod89.github.io/ministadion/'
+      );
+    } else {
+      sendTelegram(chatId, '❌ Xatolik: ' + (result.error || 'Noma\'lum xato') + '\n\nQayta: /book');
+    }
+    return ok({ handled: true });
+  }
+
+  // Bekor qilish
+  if (data === 'cancel_book') {
+    clearTgSession(chatId);
+    sendTelegram(chatId, '❌ Bekor qilindi.\n\nYangi buyurtma: /book');
+    return ok({ handled: true });
+  }
+
+  return ok({ handled: false });
+}
+
+// ── MENING BUYURTMALARIM ─────────────────────────────────────
+function showMyBookings(chatId, session) {
+  if (!session.phone) {
+    session.step = 'mybookings_phone';
+    setTgSession(chatId, session);
+    sendTelegram(chatId, '📞 Buyurtmalarni ko\'rish uchun telefon raqamingizni kiriting:');
+    return ok({ handled: true });
+  }
+  return showBookingsByPhone(chatId, session.phone);
+}
+
+function showBookingsByPhone(chatId, phone) {
+  var sh = getSheets().bookings;
+  var rows = sheetToObjects(sh);
+  var mine = rows.filter(function(r) { return r.user_phone === phone; });
+
+  if (mine.length === 0) {
+    sendTelegram(chatId, '📋 Sizda hech qanday buyurtma yo\'q.\n\nBand qilish: /book');
+    return ok({ handled: true });
+  }
+
+  var text = '📋 <b>Sizning buyurtmalaringiz:</b>\n\n';
+  var statusEmoji = { pending: '⏳', confirmed: '✅', rejected: '❌', cancelled: '🚫' };
+  mine.slice(-5).reverse().forEach(function(b) {
+    text += (statusEmoji[b.status] || '•') + ' <b>' + b.booking_date + '</b> ' + b.start_time + '-' + b.end_time + '\n';
+    text += '   Holat: ' + (b.status || 'pending') + '\n\n';
+  });
+  text += '🌐 https://farhod89.github.io/ministadion/';
+  sendTelegram(chatId, text);
+  return ok({ handled: true });
+}
+
+// ── BO'SH SLOTLAR ─────────────────────────────────────────────
+function getFreeSlots(stadiumId, date) {
+  var stSh = getSheets().stadiums;
+  var stadiums = sheetToObjects(stSh);
+  var st = stadiums.find(function(r) { return r.id === stadiumId; });
+  if (!st) return [];
+
+  var hours = (st.working_hours || '08:00-21:00').split('-');
+  var startH = parseInt(hours[0]) || 8;
+  var endH   = parseInt(hours[1]) || 21;
+
+  // Mavjud buyurtmalar
+  var bkSh = getSheets().bookings;
+  var bookings = sheetToObjects(bkSh).filter(function(b) {
+    return b.stadium_id === stadiumId && b.booking_date === date &&
+           b.status !== 'rejected' && b.status !== 'cancelled';
+  });
+
+  var slots = [];
+  for (var h = startH; h < endH; h++) {
+    var s = pad2(h) + ':00';
+    var e = pad2(h + 1) + ':00';
+    var busy = bookings.some(function(b) {
+      return b.start_time <= s && b.end_time > s;
+    });
+    if (!busy) slots.push({ start: s, end: e });
+  }
+  return slots;
+}
+
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+// ── TELEGRAM YORDAMCHI FUNKSIYALAR ───────────────────────────
+function sendTelegramKeyboard(chatId, text, keyboard) {
+  if (!TELEGRAM_TOKEN || !chatId) return;
+  try {
+    UrlFetchApp.fetch('https://api.telegram.org/bot' + TELEGRAM_TOKEN + '/sendMessage', {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify({
+        chat_id: chatId,
+        text: text,
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard: keyboard }
+      })
+    });
+  } catch(e) {}
+}
+
+function answerCallbackQuery(callbackQueryId) {
+  if (!TELEGRAM_TOKEN) return;
+  try {
+    UrlFetchApp.fetch('https://api.telegram.org/bot' + TELEGRAM_TOKEN + '/answerCallbackQuery', {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify({ callback_query_id: callbackQueryId })
+    });
+  } catch(e) {}
 }
 
 // Webhookni o'rnatish funksiyasi — Apps Script'da bir marta qo'lda ishga tushiriladi
