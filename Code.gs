@@ -638,20 +638,28 @@ function pollTelegram() {
   props.setProperty('tg_offset', lastOffset.toString());
 }
 
+// Har 30 soniyada ishlaydi (1 trigger ichida 2 marta polling)
+function pollTelegramFast() {
+  pollTelegram();
+  Utilities.sleep(30000); // 30 soniya kutish
+  pollTelegram();
+}
+
 // Trigger o'rnatish — bir marta ishga tushiring
 function setupPollingTrigger() {
   // Avval eski triggerlarni o'chirish
   ScriptApp.getProjectTriggers().forEach(function(t) {
-    if (t.getHandlerFunction() === 'pollTelegram') {
+    if (t.getHandlerFunction() === 'pollTelegram' ||
+        t.getHandlerFunction() === 'pollTelegramFast') {
       ScriptApp.deleteTrigger(t);
     }
   });
-  // Har daqiqada ishga tushirish
-  ScriptApp.newTrigger('pollTelegram')
+  // Har daqiqada 2 marta (30 soniya interval)
+  ScriptApp.newTrigger('pollTelegramFast')
     .timeBased()
     .everyMinutes(1)
     .create();
-  Logger.log('Polling trigger o\'rnatildi — har daqiqa pollTelegram ishga tushadi');
+  Logger.log('Fast polling trigger o\'rnatildi — har 30 soniyada ishlaydi');
 }
 
 // Webhook holatini tekshirish
