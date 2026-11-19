@@ -137,6 +137,13 @@ function doPost(e) {
   } catch(ex) {
     params = e.parameter || {};
   }
+
+  // ── Telegram Webhook ──────────────────────────────────────────
+  // Telegram update obyektida "update_id" bo'ladi
+  if (params.update_id !== undefined) {
+    return handleTelegramUpdate(params);
+  }
+
   var action = params.action || '';
 
   try {
@@ -156,6 +163,87 @@ function doPost(e) {
   } catch(ex) {
     return err(ex.message);
   }
+}
+
+// ============================================================
+// TELEGRAM BOT WEBHOOK HANDLER
+// ============================================================
+
+function handleTelegramUpdate(update) {
+  try {
+    var msg = update.message || update.callback_query && update.callback_query.message;
+    if (!msg) return ok({ handled: false });
+
+    var chatId = msg.chat.id;
+    var text   = (msg.text || '').trim();
+    var firstName = (msg.chat.first_name || msg.chat.username || 'Foydalanuvchi');
+
+    // /start buyrug'i
+    if (text === '/start' || text.indexOf('/start') === 0) {
+      var welcome =
+        '⚽ <b>MiniStadion.uz botiga xush kelibsiz!</b>\n\n' +
+        'Salom, ' + firstName + '!\n\n' +
+        'Bu bot orqali siz:\n' +
+        '• 🏟 Stadion egasi bo\'lsangiz — buyurtmalar haqida bildirishnoma olasiz\n' +
+        '• 📋 Buyurtmalaringiz holati haqida xabar olasiz\n\n' +
+        '🌐 Saytimiz: https://farhod89.github.io/ministadion/\n\n' +
+        '<b>Telegram ID ingiz:</b> <code>' + chatId + '</code>\n' +
+        'Stadion ro\'yxatdan o\'tkazishda shu ID ni kiriting!';
+      sendTelegram(chatId, welcome);
+      return ok({ handled: true });
+    }
+
+    // /id buyrug'i — foydalanuvchi o'z chat_id sini bilishi uchun
+    if (text === '/id') {
+      sendTelegram(chatId,
+        '🆔 Sizning Telegram ID: <code>' + chatId + '</code>\n\n' +
+        'Stadion ro\'yxatdan o\'tkazishda shu ID ni "Telegram ID" maydoniga kiriting.'
+      );
+      return ok({ handled: true });
+    }
+
+    // /help buyrug'i
+    if (text === '/help' || text === '/yordam') {
+      var helpText =
+        '📌 <b>Buyruqlar ro\'yxati:</b>\n\n' +
+        '/start — Botni ishga tushirish\n' +
+        '/id — Telegram ID ni ko\'rish\n' +
+        '/help — Yordam\n\n' +
+        '🏟 Stadion ro\'yxatdan o\'tkazish uchun:\n' +
+        'https://farhod89.github.io/ministadion/\n\n' +
+        '❓ Muammo bo\'lsa, sayt orqali bog\'laning.';
+      sendTelegram(chatId, helpText);
+      return ok({ handled: true });
+    }
+
+    // Boshqa xabar — umumiy javob
+    sendTelegram(chatId,
+      'Salom ' + firstName + '! 👋\n\n' +
+      'Men faqat stadion bildirishnomalari uchun ishlaymen.\n\n' +
+      '/help — buyruqlar ro\'yxati\n' +
+      '/id — Telegram ID ni ko\'rish\n\n' +
+      '🌐 https://farhod89.github.io/ministadion/'
+    );
+    return ok({ handled: true });
+
+  } catch(ex) {
+    return ok({ handled: false, error: ex.message });
+  }
+}
+
+// Webhookni o'rnatish funksiyasi — Apps Script'da bir marta qo'lda ishga tushiriladi
+function setTelegramWebhook() {
+  var APPS_SCRIPT_URL = ScriptApp.getService().getUrl();
+  var url = 'https://api.telegram.org/bot' + TELEGRAM_TOKEN + '/setWebhook?url=' + encodeURIComponent(APPS_SCRIPT_URL);
+  var response = UrlFetchApp.fetch(url);
+  Logger.log(response.getContentText());
+}
+
+// Webhook holatini tekshirish
+function checkTelegramWebhook() {
+  var url = 'https://api.telegram.org/bot' + TELEGRAM_TOKEN + '/getWebhookInfo';
+  var response = UrlFetchApp.fetch(url);
+  Logger.log(response.getContentText());
 }
 
 // ============================================================
