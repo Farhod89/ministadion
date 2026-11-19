@@ -126,6 +126,9 @@ function doGet(e) {
       case 'owner_login':      result = ownerLogin(params); break;
       case 'owner_bookings':   result = ownerBookings(params); break;
       case 'confirm_stadium':  result = confirmStadiumAdmin(params); break;
+      // Vercel bot session
+      case 'tg_session_get':   result = tgSessionGet(params); break;
+      case 'tg_session_set':   result = tgSessionSet(params); break;
       default: result = err('Noma\'lum action: ' + action);
     }
   } catch(ex) {
@@ -595,6 +598,23 @@ function answerCallbackQuery(callbackQueryId) {
       payload: JSON.stringify({ callback_query_id: callbackQueryId })
     });
   } catch(e) {}
+}
+
+// ============================================================
+// TELEGRAM SESSION (Vercel bot uchun Apps Script da saqlash)
+// ============================================================
+
+function tgSessionGet(p) {
+  if (!p.chat_id) return err('chat_id kerak');
+  var val = PropertiesService.getUserProperties().getProperty('tg_' + p.chat_id);
+  try { return ok(val ? JSON.parse(val) : {}); }
+  catch(e) { return ok({}); }
+}
+
+function tgSessionSet(p) {
+  if (!p.chat_id) return err('chat_id kerak');
+  PropertiesService.getUserProperties().setProperty('tg_' + p.chat_id, p.session || '{}');
+  return ok({ saved: true });
 }
 
 // ============================================================
