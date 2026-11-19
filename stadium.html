@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stadion — MiniStadion.uz</title>
+<style>
+  :root {
+    --green: #16a34a; --green2: #15803d; --lime: #84cc16;
+    --bg: #f0fdf4; --card: #fff; --text: #1a2e1a;
+    --muted: #6b7280; --border: #d1fae5; --red: #dc2626;
+    --shadow: 0 2px 12px rgba(22,163,74,.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+
+  header {
+    background: linear-gradient(135deg, #15803d, #166534);
+    color: #fff; padding: 0 16px; position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+  }
+  .header-inner {
+    max-width: 900px; margin: 0 auto; height: 54px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .back-btn {
+    padding: 6px 14px; background: rgba(255,255,255,.2); border: none;
+    border-radius: 20px; color: #fff; cursor: pointer; font-size: .85rem;
+  }
+  #page-title { font-weight: 700; font-size: 1.1rem; flex: 1; }
+
+  /* ── HERO ── */
+  .st-hero {
+    background: linear-gradient(160deg, #166534, #16a34a);
+    padding: 28px 16px 36px; color: #fff;
+  }
+  .st-hero-inner { max-width: 900px; margin: 0 auto; }
+  .st-name { font-size: 1.6rem; font-weight: 800; margin-bottom: 6px; }
+  .st-meta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+  .st-chip {
+    padding: 4px 12px; background: rgba(255,255,255,.2);
+    border-radius: 20px; font-size: .82rem; white-space: nowrap;
+  }
+
+  /* ── LIVE BOARD ── */
+  .live-wrap { max-width: 900px; margin: -24px auto 0; padding: 0 16px; }
+  .live-board {
+    background: #fff; border-radius: 16px; box-shadow: var(--shadow);
+    border: 1px solid var(--border); overflow: hidden;
+  }
+  .live-head {
+    background: #14532d; color: #fff; padding: 10px 16px;
+    display: flex; align-items: center; gap: 8px; font-weight: 700;
+  }
+  .live-dot {
+    width: 10px; height: 10px; border-radius: 50%; background: #22c55e;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
+  .stadium-wrap { position: relative; background: #064e3b; }
+  .scoreboard-overlay {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
+    border-radius: 12px; padding: 10px 20px; text-align: center; color: #fff;
+    min-width: 200px;
+  }
+  .score-teams { font-size: .85rem; opacity: .8; margin-bottom: 2px; }
+  .score-num { font-size: 2.2rem; font-weight: 800; color: var(--lime); }
+  .score-time { font-size: .78rem; opacity: .7; margin-top: 4px; }
+  .next-info {
+    padding: 10px 16px; display: flex; align-items: center; gap: 10px;
+    border-top: 1px solid var(--border); font-size: .85rem;
+  }
+  .next-label { color: var(--muted); flex-shrink: 0; }
+
+  /* ── TABS ── */
+  .tabs-wrap { max-width: 900px; margin: 16px auto 0; padding: 0 16px; }
+  .tabs { display: flex; gap: 4px; background: #fff; border-radius: 12px; padding: 4px; border: 1px solid var(--border); }
+  .tab {
+    flex: 1; padding: 9px 4px; text-align: center; border: none; background: none;
+    cursor: pointer; border-radius: 9px; font-size: .88rem; font-weight: 600;
+    color: var(--muted); transition: .15s;
+  }
+  .tab.active { background: var(--green); color: #fff; }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* ── MAIN CONTENT ── */
+  .content { max-width: 900px; margin: 16px auto 40px; padding: 0 16px; }
+
+  /* ── WEEK PICKER ── */
+  .week-nav { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-bottom: 14px; }
+  .day-btn {
+    min-width: 60px; padding: 8px 4px; text-align: center; border-radius: 10px;
+    border: 2px solid var(--border); background: #fff; cursor: pointer;
+    font-size: .78rem; transition: .15s;
+  }
+  .day-btn .day-name { font-weight: 700; display: block; font-size: .85rem; }
+  .day-btn .day-num  { color: var(--muted); display: block; font-size: .75rem; }
+  .day-btn.active { background: var(--green); border-color: var(--green); color: #fff; }
+  .day-btn.active .day-num { color: rgba(255,255,255,.8); }
+
+  /* ── SLOTS ── */
+  .slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+  .slot {
+    padding: 12px; border-radius: 12px; border: 2px solid var(--border);
+    background: #fff; cursor: pointer; transition: .15s; text-align: center;
+  }
+  .slot.free:hover { border-color: var(--green); background: #f0fdf4; }
+  .slot.booked { background: #fef2f2; border-color: #fecaca; cursor: default; }
+  .slot.pending { background: #fef9c3; border-color: #fde68a; cursor: default; }
+  .slot-time { font-weight: 700; font-size: .95rem; }
+  .slot-label { font-size: .75rem; margin-top: 3px; }
+  .slot.free .slot-label { color: var(--green); }
+  .slot.booked .slot-label { color: var(--red); }
+  .slot.pending .slot-label { color: #d97706; }
+  .slot-teams { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+
+  /* ── BOOKING FORM ── */
+  .booking-form {
+    background: #fff; border-radius: 14px; padding: 20px;
+    border: 1px solid var(--border); margin-top: 16px; box-shadow: var(--shadow);
+  }
+  .booking-form h3 { font-size: 1rem; font-weight: 700; margin-bottom: 14px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-group { margin-bottom: 12px; }
+  label { display: block; font-size: .84rem; font-weight: 600; margin-bottom: 5px; color: #374151; }
+  input, select, textarea {
+    width: 100%; padding: 9px 13px; border: 1.5px solid #d1d5db; border-radius: 9px;
+    font-size: .88rem; outline: none; transition: border-color .2s; font-family: inherit; background: #fff;
+  }
+  input:focus, select:focus { border-color: var(--green); }
+  .btn-book {
+    width: 100%; padding: 12px; background: var(--green); color: #fff;
+    border: none; border-radius: 11px; font-weight: 700; font-size: 1rem; cursor: pointer;
+  }
+  .btn-book:hover { background: var(--green2); }
+  .btn-book:disabled { opacity: .5; cursor: not-allowed; }
+  .alert { padding: 10px 14px; border-radius: 9px; font-size: .88rem; margin-top: 10px; }
+  .alert-err { background: #fee2e2; color: #991b1b; }
+  .alert-ok  { background: #dcfce7; color: #166534; }
+
+  /* ── MY BOOKINGS ── */
+  .booking-card {
+    background: #fff; border-radius: 12px; padding: 14px;
+    border: 1px solid var(--border); margin-bottom: 10px;
+    box-shadow: var(--shadow);
+  }
+  .booking-row { display: flex; justify-content: space-between; align-items: flex-start; }
+  .booking-date { font-weight: 700; }
+  .status-badge {
+    padding: 3px 10px; border-radius: 10px; font-size: .75rem; font-weight: 700;
+  }
+  .status-pending  { background: #fef9c3; color: #854d0e; }
+  .status-confirmed{ background: #dcfce7; color: #166534; }
+  .status-rejected { background: #fee2e2; color: #991b1b; }
+  .status-cancelled{ background: #f1f5f9; color: #6b7280; }
+  .countdown { font-size: .82rem; color: var(--muted); margin-top: 4px; }
+  .contact-fallback { font-size: .82rem; background: #fff7ed; padding: 8px 12px; border-radius: 8px; margin-top: 8px; }
+  .btn-cancel {
+    padding: 5px 12px; background: #fee2e2; color: var(--red);
+    border: none; border-radius: 8px; cursor: pointer; font-size: .78rem; font-weight: 600;
+  }
+
+  /* ── CHAT ── */
+  .chat-box {
+    background: #fff; border-radius: 14px; border: 1px solid var(--border);
+    display: flex; flex-direction: column; height: 400px;
+  }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 12px; }
+  .chat-msg { margin-bottom: 10px; }
+  .chat-msg-name { font-size: .75rem; font-weight: 700; color: var(--green); margin-bottom: 2px; }
+  .chat-msg-text {
+    display: inline-block; padding: 7px 12px; background: #f0fdf4;
+    border-radius: 10px; font-size: .88rem; max-width: 85%; word-break: break-word;
+  }
+  .chat-msg.mine .chat-msg-name { text-align: right; color: #2563eb; }
+  .chat-msg.mine .chat-msg-text { background: #dbeafe; }
+  .chat-msg.mine { text-align: right; }
+  .chat-time { font-size: .7rem; color: var(--muted); margin-top: 2px; }
+  .chat-input-row {
+    display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--border);
+  }
+  .chat-input {
+    flex: 1; padding: 9px 13px; border: 1.5px solid #d1d5db; border-radius: 20px;
+    font-size: .88rem; outline: none;
+  }
+  .chat-input:focus { border-color: var(--green); }
+  .chat-send {
+    padding: 9px 18px; background: var(--green); color: #fff;
+    border: none; border-radius: 20px; cursor: pointer; font-weight: 700;
+  }
+
+  /* ── OWNER PANEL ── */
+  .owner-login { background: #fff; border-radius: 14px; padding: 20px; border: 1px solid var(--border); }
+  .pending-list .booking-card { border-left: 4px solid #f59e0b; }
+  .btn-confirm { padding: 7px 14px; background: #dcfce7; color: #166534; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; margin-right: 6px; }
+  .btn-reject  { padding: 7px 14px; background: #fee2e2; color: var(--red); border: none; border-radius: 8px; cursor: pointer; font-weight: 700; }
+  .score-form { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
+  .score-inp { width: 50px; text-align: center; padding: 5px; }
+
+  @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <button class="back-btn" onclick="history.back()">← Orqaga</button>
+    <div id="page-title">Stadion</div>
+    <button class="back-btn" onclick="openOwnerLogin()" id="owner-btn" style="display:none">🔑 Panel</button>
+  </div>
+</header>
+
+<!-- LIVE BOARD -->
+<div class="st-hero">
+  <div class="st-hero-inner">
+    <div class="st-name" id="st-name">⏳ Yuklanmoqda...</div>
+    <div class="st-meta" id="st-meta"></div>
+  </div>
+</div>
+
+<div class="live-wrap">
+  <div class="live-board" id="live-board" style="display:none">
+    <div class="live-head">
+      <div class="live-dot"></div>
+      <span>Hozir o'ynamoqda</span>
+    </div>
+    <div class="stadium-wrap" id="svg-wrap"></div>
+    <div class="next-info" id="next-info"></div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs-wrap">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('schedule')">📅 Jadval</button>
+    <button class="tab" onclick="switchTab('mybookings')">🎫 Mening band.</button>
+    <button class="tab" onclick="switchTab('chat')">💬 Chat</button>
+    <button class="tab" onclick="switchTab('owner')">⚙️ Panel</button>
+  </div>
+</div>
+
+<div class="content">
+  <!-- SCHEDULE TAB -->
+  <div class="tab-pane active" id="tab-schedule">
+    <div class="week-nav" id="week-nav"></div>
+    <div class="slots-grid" id="slots-grid">
+      <div style="color:var(--muted);padding:16px">Yuklanmoqda...</div>
+    </div>
+    <div class="booking-form" id="booking-form" style="display:none">
+      <h3 id="booking-slot-title">📅 Band qilish</h3>
+      <div class="form-group">
+        <label>Ismingiz *</label>
+        <input id="b-name" type="text" placeholder="To'liq ismingiz">
+      </div>
+      <div class="form-group">
+        <label>Telefon raqam *</label>
+        <input id="b-phone" type="tel" placeholder="+998 90 000 00 00">
+      </div>
+      <div class="form-group">
+        <label>Band qilish turi</label>
+        <select id="b-type" onchange="toggleTeams()">
+          <option value="practice">🏃 Mashq (jamoa kerak emas)</option>
+          <option value="challenge">⚔️ Vizov (ikki jamoa)</option>
+        </select>
+      </div>
+      <div id="teams-block" style="display:none">
+        <div class="form-row">
+          <div class="form-group">
+            <label>1-jamoa nomi *</label>
+            <input id="b-team1" type="text" placeholder="Masalan: 1989-yilliklar">
+          </div>
+          <div class="form-group">
+            <label>2-jamoa nomi *</label>
+            <input id="b-team2" type="text" placeholder="Masalan: 1996-yilliklar">
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Izoh (ixtiyoriy)</label>
+        <input id="b-notes" type="text" placeholder="Qo'shimcha ma'lumot">
+      </div>
+      <div id="book-msg"></div>
+      <button class="btn-book" id="book-btn" onclick="submitBooking()">📤 Band qilish</button>
+      <button onclick="cancelBookingForm()" style="margin-top:8px;width:100%;padding:10px;background:#f1f5f9;border:none;border-radius:11px;cursor:pointer;font-weight:600">Bekor qilish</button>
+    </div>
+  </div>
+
+  <!-- MY BOOKINGS TAB -->
+  <div class="tab-pane" id="tab-mybookings">
+    <div class="form-group" style="margin-bottom:12px">
+      <label>Telefon raqam orqali ko'rish</label>
+      <div style="display:flex;gap:8px">
+        <input id="my-phone" type="tel" placeholder="+998 90 000 00 00" style="flex:1">
+        <button onclick="loadMyBookings()" style="padding:9px 16px;background:var(--green);color:#fff;border:none;border-radius:9px;cursor:pointer;font-weight:700">Ko'rish</button>
+      </div>
+    </div>
+    <div id="my-bookings-list"></div>
+  </div>
+
+  <!-- CHAT TAB -->
+  <div class="tab-pane" id="tab-chat">
+    <div class="chat-box">
+      <div class="chat-messages" id="chat-messages"></div>
+      <div class="chat-input-row">
+        <input class="chat-input" id="chat-input" type="text" placeholder="Xabar yozing..." onkeydown="if(event.key==='Enter')sendChatMsg()">
+        <button class="chat-send" onclick="sendChatMsg()">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- OWNER PANEL TAB -->
+  <div class="tab-pane" id="tab-owner">
+    <div class="owner-login" id="owner-login-block">
+      <h3 style="margin-bottom:14px">🔑 Stadion egasi paneli</h3>
+      <div class="form-group">
+        <label>Telefon raqam (egasining)</label>
+        <input id="owner-phone" type="tel" placeholder="+998 90 000 00 00">
+      </div>
+      <div id="owner-login-msg"></div>
+      <button onclick="ownerLogin()" class="btn-book">Kirish</button>
+    </div>
+    <div id="owner-panel" style="display:none">
+      <h3 style="margin-bottom:14px">⚙️ Boshqaruv paneli</h3>
+      <div style="margin-bottom:16px">
+        <select id="owner-date-filter" onchange="loadOwnerBookings()">
+          <option value="">Barcha kunlar</option>
+        </select>
+      </div>
+      <h4 style="margin-bottom:8px;color:#d97706">⏳ Kutilayotganlar</h4>
+      <div id="pending-bookings" class="pending-list"></div>
+      <h4 style="margin:16px 0 8px;color:var(--green)">✅ Tasdiqlangan (bugun)</h4>
+      <div id="confirmed-bookings"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+var API_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
+var stadiumId = new URLSearchParams(location.search).get('id');
+var selectedDate = '';
+var selectedSlot = null;
+var ownerPhone = '';
+var chatInterval = null;
+var lastChatId = '';
+
+// ── INIT ──
+if (!stadiumId) { document.body.innerHTML = '<p style="padding:20px;color:red">Stadion ID topilmadi</p>'; }
+else { init(); }
+
+function init() {
+  loadStadiumInfo();
+  buildWeekNav();
+  loadLiveBoard();
+  setInterval(loadLiveBoard, 30000);
+  document.getElementById('owner-btn').style.display = 'inline-block';
+}
+
+// ── API ──
+function apiFetch(action, params) {
+  var qs = Object.assign({ action: action }, params);
+  var url = API_URL + '?' + Object.entries(qs).map(function(kv) {
+    return encodeURIComponent(kv[0]) + '=' + encodeURIComponent(kv[1]);
+  }).join('&');
+  return fetch(url).then(function(r) { return r.json(); })
+    .catch(function() { return { ok: false, error: 'Tarmoq xatosi' }; });
+}
+
+function apiPost(data) {
+  return fetch(API_URL, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }).then(function(r) { return r.json(); })
+    .catch(function() { return { ok: false, error: 'Tarmoq xatosi' }; });
+}
+
+// ── STADIUM INFO ──
+function loadStadiumInfo() {
+  apiFetch('stadium_detail', { stadium_id: stadiumId }).then(function(res) {
+    if (!res.ok) return;
+    var s = res.data;
+    document.title = s.name + ' — MiniStadion.uz';
+    document.getElementById('page-title').textContent = s.name;
+    document.getElementById('st-name').textContent = s.name;
+    document.getElementById('st-meta').innerHTML =
+      '<div class="st-chip">📍 ' + esc(s.address || s.region || '') + '</div>' +
+      '<div class="st-chip">⏰ ' + esc(s.working_hours || '') + '</div>' +
+      '<div class="st-chip">👥 ' + (s.capacity || 12) + ' kishi</div>' +
+      (s.price_per_hour > 0 ? '<div class="st-chip">💰 ' + formatPrice(s.price_per_hour) + '/soat</div>' : '') +
+      (s.owner_name ? '<div class="st-chip">👤 Mas\'ul: ' + esc(s.owner_name) + '</div>' : '');
+  });
+}
+
+// ── LIVE BOARD ──
+function loadLiveBoard() {
+  apiFetch('now_playing', { stadium_id: stadiumId }).then(function(res) {
+    if (!res.ok) return;
+    var np = res.data.now_playing || [];
+    var nb = res.data.next_booking;
+    renderLiveBoard(np, nb);
+  });
+}
+
+function renderLiveBoard(np, nb) {
+  var board = document.getElementById('live-board');
+  if (!np.length && !nb) { board.style.display = 'none'; return; }
+  board.style.display = 'block';
+  var svgWrap = document.getElementById('svg-wrap');
+  if (np.length) {
+    var g = np[0];
+    var s1 = g.score1 !== '' ? g.score1 : '—';
+    var s2 = g.score2 !== '' ? g.score2 : '—';
+    svgWrap.style.position = 'relative';
+    svgWrap.innerHTML = stadiumSVG() +
+      '<div class="scoreboard-overlay">' +
+        '<div class="score-teams">' + esc(g.team1||'Jamoa 1') + ' vs ' + esc(g.team2||'Jamoa 2') + '</div>' +
+        '<div class="score-num">' + s1 + ' : ' + s2 + '</div>' +
+        '<div class="score-time" id="game-countdown"></div>' +
+      '</div>';
+    startGameCountdown(g.end_time);
+  } else {
+    svgWrap.innerHTML = '';
+  }
+  var ni = document.getElementById('next-info');
+  if (nb) {
+    ni.innerHTML = '<span class="next-label">Keyingi o\'yin:</span>' +
+      '<strong>' + nb.start_time + '</strong> — ' +
+      esc(nb.team1 || 'Jamoa 1') + (nb.team2 ? ' vs ' + esc(nb.team2) : '') +
+      ' <span id="next-countdown" style="margin-left:8px;color:var(--green);font-weight:700"></span>';
+    startNextCountdown(nb.booking_date, nb.start_time);
+  } else {
+    ni.innerHTML = '';
+  }
+}
+
+function startGameCountdown(endTime) {
+  function update() {
+    var el = document.getElementById('game-countdown');
+    if (!el) return;
+    var now = new Date();
+    var end = new Date(now.toDateString() + ' ' + endTime);
+    var diff = Math.max(0, (end - now) / 1000);
+    var m = Math.floor(diff / 60), s = Math.floor(diff % 60);
+    el.textContent = m + ':' + String(s).padStart(2,'0') + ' qoldi';
+  }
+  update();
+  setInterval(update, 1000);
+}
+
+function startNextCountdown(date, time) {
+  function update() {
+    var el = document.getElementById('next-countdown');
+    if (!el) return;
+    var diff = Math.max(0, (new Date(date + 'T' + time) - new Date()) / 1000);
+    if (diff < 3600) {
+      var m = Math.floor(diff / 60);
+      el.textContent = m + ' daq qoldi';
+    } else {
+      var h = Math.floor(diff / 3600);
+      el.textContent = h + ' soat qoldi';
+    }
+  }
+  update();
+  setInterval(update, 10000);
+}
+
+function stadiumSVG() {
+  return '<svg viewBox="0 0 400 220" width="100%" style="display:block">' +
+    '<rect width="400" height="220" fill="#166534"/>' +
+    '<rect x="30" y="20" width="340" height="180" fill="#15803d" stroke="#fff" stroke-width="2.5" rx="4"/>' +
+    '<line x1="200" y1="20" x2="200" y2="200" stroke="#fff" stroke-width="1.5" stroke-dasharray="6,4"/>' +
+    '<circle cx="200" cy="110" r="30" fill="none" stroke="#fff" stroke-width="1.5"/>' +
+    '<circle cx="200" cy="110" r="3" fill="#fff"/>' +
+    '<rect x="30" y="75" width="45" height="70" fill="none" stroke="#fff" stroke-width="1.5"/>' +
+    '<rect x="30" y="88" width="22" height="44" fill="none" stroke="#fff" stroke-width="1.5"/>' +
+    '<rect x="325" y="75" width="45" height="70" fill="none" stroke="#fff" stroke-width="1.5"/>' +
+    '<rect x="348" y="88" width="22" height="44" fill="none" stroke="#fff" stroke-width="1.5"/>' +
+    '<circle cx="85" cy="110" r="3" fill="#fff"/>' +
+    '<circle cx="315" cy="110" r="3" fill="#fff"/>' +
+    player(80, 70, '#ef4444', '1') + player(60, 100, '#ef4444', '2') + player(80, 140, '#ef4444', '3') +
+    player(120, 85, '#ef4444', '4') + player(120, 125, '#ef4444', '5') + player(155, 108, '#ef4444', '6') +
+    player(320, 70, '#3b82f6', '1') + player(340, 100, '#3b82f6', '2') + player(320, 140, '#3b82f6', '3') +
+    player(280, 85, '#3b82f6', '4') + player(280, 125, '#3b82f6', '5') + player(245, 108, '#3b82f6', '6') +
+    '<circle cx="200" cy="140" r="5" fill="#fef9c3" stroke="#fff" stroke-width="1"/>' +
+    audience(400, 5) + audience(400, 210) +
+  '</svg>';
+}
+
+function player(cx, cy, color, num) {
+  return '<g transform="translate(' + cx + ',' + cy + ')">' +
+    '<circle cy="-14" r="6" fill="' + color + '"/>' +
+    '<line y1="-8" y2="6" stroke="' + color + '" stroke-width="3"/>' +
+    '<line x1="-7" y1="-2" x2="7" y2="-2" stroke="' + color + '" stroke-width="2.5"/>' +
+    '<line y1="6" x2="-5" y2="16" stroke="' + color + '" stroke-width="2.5"/>' +
+    '<line y1="6" x2="5" y2="16" stroke="' + color + '" stroke-width="2.5"/>' +
+    '<text y="-11" font-size="5" fill="#fff" text-anchor="middle" font-weight="bold">' + num + '</text></g>';
+}
+
+function audience(w, y) {
+  var out = '';
+  var colors = ['#fbbf24','#60a5fa','#f87171','#a3e635','#c084fc','#fb923c'];
+  for (var x = 10; x < w; x += 14) {
+    out += '<circle cx="' + x + '" cy="' + y + '" r="4" fill="' + colors[Math.floor(x/14)%colors.length] + '" opacity=".7"/>';
+  }
+  return out;
+}
+
+// ── TABS ──
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(function(t, i) { t.classList.remove('active'); });
+  document.querySelectorAll('.tab-pane').forEach(function(p) { p.classList.remove('active'); });
+  var tabs = document.querySelectorAll('.tab');
+  var panes = ['schedule','mybookings','chat','owner'];
+  tabs[panes.indexOf(name)].classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+
+  if (name === 'chat') startChat();
+  else if (chatInterval) { clearInterval(chatInterval); chatInterval = null; }
+}
+
+// ── WEEK NAV ──
+function buildWeekNav() {
+  var nav = document.getElementById('week-nav');
+  var days = ['Yak','Du','Se','Cho','Pay','Ju','Sha'];
+  var today = new Date();
+  for (var i = 0; i < 7; i++) {
+    var d = new Date(today);
+    d.setDate(today.getDate() + i);
+    var dateStr = d.toISOString().split('T')[0];
+    if (i === 0) selectedDate = dateStr;
+    var btn = document.createElement('button');
+    btn.className = 'day-btn' + (i === 0 ? ' active' : '');
+    btn.dataset.date = dateStr;
+    btn.innerHTML = '<span class="day-name">' + days[d.getDay()] + '</span><span class="day-num">' + d.getDate() + '</span>';
+    btn.onclick = (function(ds, el) {
+      return function() {
+        document.querySelectorAll('.day-btn').forEach(function(b) { b.classList.remove('active'); });
+        el.classList.add('active');
+        selectedDate = ds;
+        cancelBookingForm();
+        loadSlots(ds);
+      };
+    })(dateStr, btn);
+    nav.appendChild(btn);
+  }
+  loadSlots(selectedDate);
+}
+
+// ── SLOTS ──
+function loadSlots(date) {
+  document.getElementById('slots-grid').innerHTML = '<div style="color:var(--muted);padding:12px">Yuklanmoqda...</div>';
+  apiFetch('get_slots', { stadium_id: stadiumId, date: date }).then(function(res) {
+    if (!res.ok) {
+      document.getElementById('slots-grid').innerHTML = '<div style="color:red;padding:12px">Xato: ' + esc(res.error) + '</div>';
+      return;
+    }
+    renderSlots(res.data);
+  });
+}
+
+function renderSlots(slots) {
+  var grid = document.getElementById('slots-grid');
+  if (!slots.length) { grid.innerHTML = '<div style="color:var(--muted);padding:12px">Bu kun uchun slot yo\'q</div>'; return; }
+  grid.innerHTML = slots.map(function(sl) {
+    if (sl.booked) {
+      var cls = sl.status === 'pending' ? 'pending' : 'booked';
+      var lbl = sl.status === 'pending' ? '⏳ Kutilayotgan' : '🔴 Band';
+      var teams = sl.team1 ? ('<div class="slot-teams">' + esc(sl.team1) + (sl.team2 ? ' vs ' + esc(sl.team2) : '') + '</div>') : '';
+      return '<div class="slot ' + cls + '"><div class="slot-time">' + sl.start + '</div><div class="slot-label">' + lbl + '</div>' + teams + '</div>';
+    } else {
+      return '<div class="slot free" onclick="selectSlot(\'' + sl.start + '\',\'' + sl.end + '\')"><div class="slot-time">' + sl.start + '</div><div class="slot-label" style="color:var(--green)">✅ Bo\'sh</div></div>';
+    }
+  }).join('');
+}
+
+function selectSlot(start, end) {
+  selectedSlot = { start: start, end: end };
+  var form = document.getElementById('booking-form');
+  document.getElementById('booking-slot-title').textContent = '📅 Band qilish: ' + selectedDate + ' ' + start + '–' + end;
+  form.style.display = 'block';
+  form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function cancelBookingForm() {
+  document.getElementById('booking-form').style.display = 'none';
+  selectedSlot = null;
+}
+
+function toggleTeams() {
+  var t = document.getElementById('b-type').value;
+  document.getElementById('teams-block').style.display = t === 'challenge' ? 'block' : 'none';
+}
+
+function submitBooking() {
+  if (!selectedSlot) return;
+  var name  = document.getElementById('b-name').value.trim();
+  var phone = document.getElementById('b-phone').value.trim();
+  var type  = document.getElementById('b-type').value;
+  var team1 = document.getElementById('b-team1').value.trim();
+  var team2 = document.getElementById('b-team2').value.trim();
+  if (!name || !phone) return showMsg('book-msg', 'Ism va telefon majburiy', 'err');
+  if (type === 'challenge' && (!team1 || !team2)) return showMsg('book-msg', 'Ikkala jamoa nomini kiriting', 'err');
+
+  var btn = document.getElementById('book-btn');
+  btn.disabled = true; btn.textContent = '⏳ Yuborilmoqda...';
+
+  apiPost({
+    action: 'book_slot', stadium_id: stadiumId,
+    user_name: name, user_phone: phone,
+    booking_date: selectedDate, start_time: selectedSlot.start, end_time: selectedSlot.end,
+    booking_type: type, team1: team1, team2: team2,
+    notes: document.getElementById('b-notes').value.trim()
+  }).then(function(res) {
+    btn.disabled = false; btn.textContent = '📤 Band qilish';
+    if (res.ok) {
+      showMsg('book-msg', '✅ Band qilish so\'rovi yuborildi! Egasi tasdiqlashini kuting.', 'ok');
+      setTimeout(function() { cancelBookingForm(); loadSlots(selectedDate); }, 2000);
+    } else {
+      showMsg('book-msg', '❌ ' + (res.error || 'Xato'), 'err');
+    }
+  });
+}
+
+// ── MY BOOKINGS ──
+function loadMyBookings() {
+  var phone = document.getElementById('my-phone').value.trim();
+  if (!phone) return;
+  var list = document.getElementById('my-bookings-list');
+  list.innerHTML = '<div style="color:var(--muted);padding:12px">Yuklanmoqda...</div>';
+  apiFetch('my_bookings', { user_phone: phone, stadium_id: stadiumId }).then(function(res) {
+    if (!res.ok) { list.innerHTML = '<div style="color:red;padding:12px">' + esc(res.error) + '</div>'; return; }
+    var items = res.data.filter(function(b) { return b.stadium_id === stadiumId; });
+    if (!items.length) { list.innerHTML = '<div style="color:var(--muted);padding:12px">Band qilishlar topilmadi</div>'; return; }
+    list.innerHTML = items.sort(function(a,b) { return b.created_at > a.created_at ? 1 : -1; }).map(function(b) {
+      var stLabel = statusLabel(b.status);
+      var countdown = '';
+      if (b.status === 'pending') {
+        countdown = '<div class="countdown" id="cd-' + b.id + '">⏳ Tasdiqlash kutilmoqda...</div>' +
+          '<div class="contact-fallback" id="cf-' + b.id + '" style="display:none">' +
+          '📞 Bog\'lanish: <strong>' + esc(b.stadium_name) + '</strong> egasi bilan bog\'laning</div>';
+        startPendingCountdown(b.id, b.created_at);
+      } else if (b.status === 'confirmed') {
+        countdown = '<div class="countdown" id="cd-' + b.id + '"></div>';
+        startConfirmedCountdown(b.id, b.booking_date, b.start_time);
+      }
+      return '<div class="booking-card">' +
+        '<div class="booking-row">' +
+          '<div><div class="booking-date">' + b.booking_date + ' ' + b.start_time + '–' + b.end_time + '</div>' +
+          (b.team1 ? '<div style="font-size:.82rem;color:var(--muted)">' + esc(b.team1) + (b.team2?' vs '+esc(b.team2):'') + '</div>' : '') +
+          '</div>' +
+          '<div>' + stLabel +
+          (b.status === 'pending' || b.status === 'confirmed' ?
+            '<button class="btn-cancel" onclick="cancelMyBooking(\'' + b.id + '\',\'' + phone + '\')">✕</button>' : '') +
+          '</div>' +
+        '</div>' + countdown +
+      '</div>';
+    }).join('');
+  });
+}
+
+function startPendingCountdown(bookingId, createdAt) {
+  var TIMEOUT_MS = 15 * 60 * 1000;
+  var created = new Date(createdAt);
+  function update() {
+    var el = document.getElementById('cd-' + bookingId);
+    var cf = document.getElementById('cf-' + bookingId);
+    if (!el) return;
+    var diff = TIMEOUT_MS - (new Date() - created);
+    if (diff <= 0) {
+      el.style.display = 'none';
+      if (cf) cf.style.display = 'block';
+      return;
+    }
+    var m = Math.floor(diff/60000), s = Math.floor((diff%60000)/1000);
+    el.textContent = '⏳ ' + m + ':' + String(s).padStart(2,'0') + ' ichida tasdiqlanishi kerak';
+  }
+  update();
+  setInterval(update, 1000);
+}
+
+function startConfirmedCountdown(bookingId, date, time) {
+  function update() {
+    var el = document.getElementById('cd-' + bookingId);
+    if (!el) return;
+    var target = new Date(date + 'T' + time);
+    var diff = Math.max(0, (target - new Date()) / 1000);
+    if (diff === 0) { el.textContent = '🏃 O\'yin boshlandi!'; return; }
+    var h = Math.floor(diff/3600), m = Math.floor((diff%3600)/60);
+    el.textContent = '⏰ ' + (h ? h + ' soat ' : '') + m + ' daqiqa qoldi';
+  }
+  update(); setInterval(update, 60000);
+}
+
+function cancelMyBooking(id, phone) {
+  if (!confirm('Bu band qilishni bekor qilmoqchimisiz?')) return;
+  apiPost({ action: 'cancel_booking', booking_id: id, user_phone: phone })
+    .then(function(res) {
+      if (res.ok) loadMyBookings();
+      else alert(res.error);
+    });
+}
+
+function statusLabel(s) {
+  var map = { pending: ['⏳ Kutilayotgan','status-pending'], confirmed: ['✅ Tasdiqlangan','status-confirmed'],
+              rejected: ['❌ Rad etilgan','status-rejected'], cancelled: ['🚫 Bekor qilingan','status-cancelled'] };
+  var v = map[s] || [s, ''];
+  return '<span class="status-badge ' + v[1] + '">' + v[0] + '</span> ';
+}
+
+// ── CHAT ──
+function startChat() {
+  loadChat();
+  if (chatInterval) clearInterval(chatInterval);
+  chatInterval = setInterval(loadChat, 3000);
+}
+
+function loadChat() {
+  apiFetch('get_chat', { stadium_id: stadiumId, since_id: lastChatId }).then(function(res) {
+    if (!res.ok) return;
+    var msgs = res.data;
+    if (!msgs.length) return;
+    lastChatId = msgs[msgs.length - 1].id;
+    var box = document.getElementById('chat-messages');
+    var userPhone = localStorage.getItem('chatPhone') || '';
+    var html = msgs.map(function(m) {
+      var isMine = m.user_phone === userPhone;
+      return '<div class="chat-msg' + (isMine ? ' mine' : '') + '">' +
+        '<div class="chat-msg-name">' + esc(m.user_name) + '</div>' +
+        '<div class="chat-msg-text">' + esc(m.message) + '</div>' +
+        '<div class="chat-time">' + timeAgo(m.created_at) + '</div></div>';
+    }).join('');
+    box.insertAdjacentHTML('beforeend', html);
+    box.scrollTop = box.scrollHeight;
+  });
+}
+
+function sendChatMsg() {
+  var input = document.getElementById('chat-input');
+  var msg = input.value.trim();
+  if (!msg) return;
+  var phone = localStorage.getItem('chatPhone');
+  if (!phone) {
+    phone = prompt('Telefon raqamingizni kiriting (+998...)');
+    if (!phone) return;
+    localStorage.setItem('chatPhone', phone);
+  }
+  var name = localStorage.getItem('chatName');
+  if (!name) {
+    name = prompt('Ismingizni kiriting');
+    if (!name) return;
+    localStorage.setItem('chatName', name);
+  }
+  input.value = '';
+  apiPost({ action: 'send_chat', stadium_id: stadiumId, user_phone: phone, user_name: name, message: msg });
+}
+
+// ── OWNER PANEL ──
+function openOwnerLogin() { switchTab('owner'); }
+
+function ownerLogin() {
+  var phone = document.getElementById('owner-phone').value.trim();
+  if (!phone) return;
+  apiFetch('get_bookings', { stadium_id: stadiumId, owner_phone: phone }).then(function(res) {
+    if (!res.ok) return showMsg('owner-login-msg', '❌ ' + (res.error || 'Ruxsat yo\'q'), 'err');
+    ownerPhone = phone;
+    document.getElementById('owner-login-block').style.display = 'none';
+    document.getElementById('owner-panel').style.display = 'block';
+    buildDateFilter(res.data);
+    renderOwnerBookings(res.data, '');
+  });
+}
+
+function buildDateFilter(bookings) {
+  var dates = [...new Set(bookings.map(function(b) { return b.booking_date; }))].sort().reverse();
+  var sel = document.getElementById('owner-date-filter');
+  dates.forEach(function(d) {
+    var opt = document.createElement('option');
+    opt.value = d; opt.textContent = d;
+    sel.appendChild(opt);
+  });
+}
+
+function loadOwnerBookings() {
+  var date = document.getElementById('owner-date-filter').value;
+  apiFetch('get_bookings', { stadium_id: stadiumId, owner_phone: ownerPhone }).then(function(res) {
+    if (!res.ok) return;
+    renderOwnerBookings(res.data, date);
+  });
+}
+
+function renderOwnerBookings(all, dateFilter) {
+  var pending   = all.filter(function(b) { return b.status === 'pending' && (!dateFilter || b.booking_date === dateFilter); });
+  var confirmed = all.filter(function(b) { return b.status === 'confirmed' && (!dateFilter || b.booking_date === dateFilter); });
+
+  var pb = document.getElementById('pending-bookings');
+  pb.innerHTML = pending.length ? pending.map(ownerCard).join('') :
+    '<div style="color:var(--muted);padding:8px">Kutilayotgan yo\'q</div>';
+
+  var cb = document.getElementById('confirmed-bookings');
+  cb.innerHTML = confirmed.length ? confirmed.map(ownerConfCard).join('') :
+    '<div style="color:var(--muted);padding:8px">Tasdiqlangan yo\'q</div>';
+}
+
+function ownerCard(b) {
+  return '<div class="booking-card">' +
+    '<div class="booking-row"><div>' +
+      '<div class="booking-date">' + b.booking_date + ' ' + b.start_time + '–' + b.end_time + '</div>' +
+      '<div style="font-size:.82rem">📞 ' + esc(b.user_phone) + ' — ' + esc(b.user_name||'') + '</div>' +
+      (b.team1 ? '<div style="font-size:.82rem;color:var(--muted)">⚔️ ' + esc(b.team1) + (b.team2?' vs '+esc(b.team2):'') + '</div>' : '') +
+    '</div></div>' +
+    '<div style="margin-top:8px">' +
+      '<button class="btn-confirm" onclick="ownerAction(\'confirm_booking\',\'' + b.id + '\')">✅ Tasdiqlash</button>' +
+      '<button class="btn-reject"  onclick="ownerAction(\'reject_booking\',\'' + b.id + '\')">❌ Rad etish</button>' +
+    '</div></div>';
+}
+
+function ownerConfCard(b) {
+  return '<div class="booking-card">' +
+    '<div class="booking-row"><div>' +
+      '<div class="booking-date">' + b.booking_date + ' ' + b.start_time + '–' + b.end_time + '</div>' +
+      '<div style="font-size:.82rem">📞 ' + esc(b.user_phone) + '</div>' +
+      (b.team1 ? '<div style="font-size:.82rem;color:var(--muted)">⚔️ ' + esc(b.team1) + (b.team2?' vs '+esc(b.team2):'') + '</div>' : '') +
+    '</div><span class="status-badge status-confirmed">✅</span></div>' +
+    '<div class="score-form">' +
+      '<span style="font-size:.82rem">Hisob:</span>' +
+      '<input class="score-inp" type="number" id="s1-' + b.id + '" placeholder="0" value="' + (b.score1||'') + '">' +
+      '<span>:</span>' +
+      '<input class="score-inp" type="number" id="s2-' + b.id + '" placeholder="0" value="' + (b.score2||'') + '">' +
+      '<button onclick="saveScore(\'' + b.id + '\')" style="padding:5px 10px;background:var(--green);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:.78rem">Saqlash</button>' +
+    '</div></div>';
+}
+
+function ownerAction(action, bookingId) {
+  apiPost({ action: action, booking_id: bookingId }).then(function(res) {
+    if (res.ok) loadOwnerBookings();
+    else alert(res.error);
+  });
+}
+
+function saveScore(bookingId) {
+  var s1 = document.getElementById('s1-' + bookingId).value;
+  var s2 = document.getElementById('s2-' + bookingId).value;
+  apiPost({ action: 'set_score', booking_id: bookingId, owner_phone: ownerPhone, score1: s1, score2: s2 })
+    .then(function(res) {
+      if (res.ok) alert('✅ Hisob saqlandi');
+      else alert(res.error);
+    });
+}
+
+// ── HELPERS ──
+function showMsg(id, msg, type) {
+  var el = document.getElementById(id);
+  if (el) el.innerHTML = '<div class="alert alert-' + type + '">' + msg + '</div>';
+}
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function formatPrice(p) { return parseInt(p).toLocaleString('uz-UZ') + ' so\'m'; }
+function timeAgo(iso) {
+  var diff = Math.floor((new Date() - new Date(iso)) / 1000);
+  if (diff < 60) return 'hozirgina';
+  if (diff < 3600) return Math.floor(diff/60) + ' daq oldin';
+  if (diff < 86400) return Math.floor(diff/3600) + ' soat oldin';
+  return new Date(iso).toLocaleDateString('uz-UZ');
+}
+</script>
+</body>
+</html>
