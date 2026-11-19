@@ -597,14 +597,61 @@ function answerCallbackQuery(callbackQueryId) {
   } catch(e) {}
 }
 
-// Webhookni o'rnatish funksiyasi — Apps Script'da bir marta qo'lda ishga tushiriladi
-function setTelegramWebhook() {
-  // MUHIM: /exec URL ishlatiladi, /dev emas (Telegram /dev ga kira olmaydi - 401 xatosi)
-  // Quyidagi URL ni o'zingizning haqiqiy deployment URL ingiz bilan almashtiring:
-  var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzbiY3UZ9I8YMRL4AoJUwptl5Ph_xaOe_ngOsTfYwrVJXuSVhewBqEjckLl9tITKXDM/exec';
-  var url = 'https://api.telegram.org/bot' + TELEGRAM_TOKEN + '/setWebhook?url=' + encodeURIComponent(APPS_SCRIPT_URL);
+// ============================================================
+// POLLING USULI — Webhook o'rniga (Apps Script trigger bilan)
+// ============================================================
+
+// Webhookni O'CHIRISH (polling ishlatish uchun avval o'chirish kerak)
+function deleteWebhook() {
+  var url = 'https://api.telegram.org/bot' + TELEGRAM_TOKEN + '/deleteWebhook';
   var response = UrlFetchApp.fetch(url);
   Logger.log(response.getContentText());
+}
+
+// Telegram'dan yangi xabarlarni polling orqali olish
+// Bu funksiyani Trigger orqali har daqiqada ishga tushiring
+function pollTelegram() {
+  if (!TELEGRAM_TOKEN) return;
+
+  var props = PropertiesService.getScriptProperties();
+  var lastOffset = parseInt(props.getProperty('tg_offset') || '0');
+
+  var url = 'https://api.telegram.org/bot' + TELEGRAM_TOKEN + '/getUpdates?timeout=0&offset=' + (lastOffset + 1);
+  var response;
+  try {
+    response = UrlFetchApp.fetch(url);
+  } catch(e) { return; }
+
+  var data = JSON.parse(response.getContentText());
+  if (!data.ok || !data.result || data.result.length === 0) return;
+
+  data.result.forEach(function(update) {
+    try {
+      handleTelegramUpdate(update);
+    } catch(ex) {
+      Logger.log('Update xatosi: ' + ex.message);
+    }
+    lastOffset = update.update_id;
+  });
+
+  // Oxirgi offset ni saqlash
+  props.setProperty('tg_offset', lastOffset.toString());
+}
+
+// Trigger o'rnatish — bir marta ishga tushiring
+function setupPollingTrigger() {
+  // Avval eski triggerlarni o'chirish
+  ScriptApp.getProjectTriggers().forEach(function(t) {
+    if (t.getHandlerFunction() === 'pollTelegram') {
+      ScriptApp.deleteTrigger(t);
+    }
+  });
+  // Har daqiqada ishga tushirish
+  ScriptApp.newTrigger('pollTelegram')
+    .timeBased()
+    .everyMinutes(1)
+    .create();
+  Logger.log('Polling trigger o\'rnatildi — har daqiqa pollTelegram ishga tushadi');
 }
 
 // Webhook holatini tekshirish
