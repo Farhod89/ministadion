@@ -588,7 +588,9 @@ function answerCallbackQuery(callbackQueryId) {
 
 // Webhookni o'rnatish funksiyasi — Apps Script'da bir marta qo'lda ishga tushiriladi
 function setTelegramWebhook() {
-  var APPS_SCRIPT_URL = ScriptApp.getService().getUrl();
+  // MUHIM: /exec URL ishlatiladi, /dev emas (Telegram /dev ga kira olmaydi - 401 xatosi)
+  // Quyidagi URL ni o'zingizning haqiqiy deployment URL ingiz bilan almashtiring:
+  var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzbiY3UZ9I8YMRL4AoJUwptl5Ph_xaOe_ngOsTfYwrVJXuSVhewBqEjckLl9tITKXDM/exec';
   var url = 'https://api.telegram.org/bot' + TELEGRAM_TOKEN + '/setWebhook?url=' + encodeURIComponent(APPS_SCRIPT_URL);
   var response = UrlFetchApp.fetch(url);
   Logger.log(response.getContentText());
